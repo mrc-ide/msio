@@ -72,6 +72,7 @@ format_outputs <- function(result, warmup) {
   cbind(prev_summary, inc_summary, eir_summary)
 }
 
+#' @importFrom stats aggregate sd
 summarise <- function(metric, year, repetition) {
   avg_year <- aggregate(
     metric,

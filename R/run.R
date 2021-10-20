@@ -1,6 +1,7 @@
 #' @title Run simulations from data
 #' @param node an arbitrary number, useful for tracking multiple executions
 #' @param warmup number of years to warm up for
+#' @param paramset a list of parameters from sample.R
 #' @param seed random seed
 #' @param datadir directory for global data to sample from
 #' @param batch_size number of runs per batch

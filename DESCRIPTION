@@ -1,0 +1,31 @@
+Package: msio
+Title: Malariasimulation Input Output
+Version: 0.0.1
+Authors@R: c(
+  person(
+    given = "Giovanni",
+    family = "Charles",
+    role = c('aut', 'cre'),
+    email = 'giovanni.charles@gmail.com'
+  ),
+  person(
+    given = "Imperial College of Science, Technology and Medicine",
+    family = "",
+    role = c('cph'),
+    email = 'giovanni.charles10@imperial.ac.uk'
+  ))
+Description: This package samples malariasimulation inputs and
+  calculates corresponding outputs for surrogate modelling.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Remotes:
+  mrc-ide/malariasimulation@dev
+Imports:
+  malariasimulation (>= 1.1.0)
+Suggests: 
+    testthat (>= 3.0.0),
+    lhs
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+Config/testthat/edition: 3

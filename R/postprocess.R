@@ -1,8 +1,6 @@
 format_results <- function(
   params,
   seasonality, 
-  mosquito_params,
-  mosquito_proportions,
   nets,
   spraying,
   treatment,
@@ -14,8 +12,6 @@ format_results <- function(
     parameters = format_parameters(
       params,
       rainfall,
-      mosquito_params,
-      mosquito_proportions,
       warmup,
       result
     ),
@@ -24,37 +20,12 @@ format_results <- function(
   )
 }
 
-get_spec <- function() {
+get_spec <- function(params) {
+  n <- names(params)
+  n[[1]] <- 'baseline_EIR'
   list(
     parameters = c(
-      'baseline_EIR',
-      'average_age',
-      'sigma_squared',
-      'du',
-      'kb',
-      'ub',
-      'uc',
-      'ud',
-      'kc',
-      'b0',
-      'b1',
-      'ib0',
-      'ic0',
-      'ct',
-      'cd',
-      'cu',
-      'Q0_gamb',
-      'phi_indoors_gamb',
-      'phi_bednets_gamb',
-      'Q0_fun',
-      'phi_indoors_fun',
-      'phi_bednets_fun',
-      'Q0_arab',
-      'phi_indoors_arab',
-      'phi_bednets_arab',
-      'prop_gamb',
-      'prop_fun',
-      'prop_arab',
+      n,
       seq(365)
     ),
     timed_parameters = c('nets', 'spraing', 'treatment'),
@@ -62,44 +33,17 @@ get_spec <- function() {
   )
 }
 
-get_EIR <- function(result) {
-  colSums(rbind(result$EIR_gamb, result$EIR_fun, result$EIR_arab))
-}
+get_EIR <- function(result) result$EIR_All
 
-format_parameters <- function(params, rainfall, m_params, m_prop, warmup, result) {
+format_parameters <- function(params, rainfall, warmup, result) {
   year <- 365
-  species_vector <- unlist(lapply(
-    m_params,
-    function(p) {
-      c(
-        p$Q0,
-        p$phi_indoors,
-        p$phi_bednets
-      )
-    }
-  ))
   row <- params
-  c(
+  row$init_EIR <- NULL
+  as.numeric(c(
     mean(get_EIR(result)[seq((warmup - 1) * year, warmup * year)]),
-    row$average_age,
-    row$sigma_squared,
-    row$du,
-    row$kb,
-    row$ub,
-    row$uc,
-    row$ud,
-    row$kc,
-    row$b0,
-    row$b1,
-    row$ib0,
-    row$ic0,
-    row$ct,
-    row$cd,
-    row$cu,
-    species_vector,
-    m_prop,
+    row,
     rainfall
-  )
+  ))
 }
 
 format_timed <- function(nets, spraying, treatment) {
@@ -133,4 +77,3 @@ get_rainfall <- function(seas_row) {
     numeric(1)
   )
 }
-

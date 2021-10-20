@@ -4,5 +4,5 @@ Samples malariasimulation inputs and calculates corresponding outputs for surrog
 # Usage
 
 ```
-msio::run_simulations_from_data(1, 5, 42, None, 1, 1, '.')
+msio::run_simulations_from_data(1, 5, msio::all_params, 42, NULL, 1, 1, '.')
 ```

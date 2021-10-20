@@ -1,0 +1,11 @@
+test_that("sample_params can set different paramsets", {
+  df <- sample_params(100, basic_params)
+  df_extended <- sample_params(100, extended_params)
+  df_all <- sample_params(100, all_params)
+  expect_equal(nrow(df), 100)
+  expect_equal(nrow(df_extended), 100)
+  expect_equal(nrow(df_all), 100)
+  expect_equal(ncol(df), length(basic_params))
+  expect_equal(ncol(df_extended), length(extended_params))
+  expect_equal(ncol(df_all), length(all_params))
+})

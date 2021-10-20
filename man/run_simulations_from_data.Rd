@@ -7,6 +7,7 @@
 run_simulations_from_data(
   node,
   warmup,
+  paramset,
   seed,
   datadir,
   batch_size,

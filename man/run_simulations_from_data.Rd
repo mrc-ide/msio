@@ -20,6 +20,8 @@ run_simulations_from_data(
 
 \item{warmup}{number of years to warm up for}
 
+\item{paramset}{a list of parameters from sample.R}
+
 \item{seed}{random seed}
 
 \item{datadir}{directory for global data to sample from}

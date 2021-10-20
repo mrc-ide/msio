@@ -60,9 +60,35 @@ format_timed <- function(nets, spraying, treatment) {
 
 format_outputs <- function(result, warmup) {
   year <- 365
-  result <- result[seq(warmup * year + 1, nrow(result)),]
-  series <- result$n_detect_730_3650 / result$n_730_3650
-  t(matrix(series, nrow=year))
+  result <- result[result$timestep > (warmup * year), ]
+  row_year <- floor((result$timestep - 1) / year)
+  prev <- result$n_detect_730_3650 / result$n_730_3650
+  inc <- result$n_inc_clinical_0_36500 / result$n_0_36500
+  inc[is.na(inc)] <- 0
+  eir <- get_EIR(result)
+  prev_summary <- summarise(prev, row_year, result$repetition)
+  inc_summary <- summarise(inc, row_year, result$repetition)
+  eir_summary <- summarise(eir, row_year, result$repetition)
+  cbind(prev_summary, inc_summary, eir_summary)
+}
+
+summarise <- function(metric, year, repetition) {
+  avg_year <- aggregate(
+    metric,
+    by = list(year = year, r = repetition),
+    FUN = mean
+  )
+  avg_rep <- aggregate(
+    avg_year$x,
+    by = list(year = avg_year$year),
+    FUN = mean
+  )
+  sd_rep <- aggregate(
+    avg_year$x,
+    by = list(year = avg_year$year),
+    FUN = sd
+  )
+  matrix(c(avg_rep$x, sd_rep$x), ncol = 2, nrow = length(avg_rep$x))
 }
 
 get_rainfall <- function(seas_row) {

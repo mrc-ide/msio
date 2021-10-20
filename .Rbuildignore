@@ -1,2 +1,5 @@
 ^msio\.Rproj$
 ^\.Rproj\.user$
+.github
+Dockerfile
+codecov.yml

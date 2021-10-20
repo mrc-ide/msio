@@ -25,7 +25,8 @@ Imports:
   malariasimulation (>= 1.1.0)
 Suggests: 
     testthat (>= 3.0.0),
-    lhs
+    lhs,
+    jsonlite
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Config/testthat/edition: 3

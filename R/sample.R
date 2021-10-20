@@ -47,6 +47,7 @@ all_params <- c(
 )
 
 #' @description sample a dataframe of params for a paramset
+#' @importFrom stats qunif
 #' @noRd
 sample_params <- function(n, paramset) {
   r <- lhs::randomLHS(n, length(paramset))

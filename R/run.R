@@ -6,6 +6,7 @@
 #' @param batch_size number of runs per batch
 #' @param n_batches number of batches
 #' @param outdir directory to save outputs
+#' @importFrom utils read.csv
 #' @export
 run_simulations_from_data <- function(
   node,
@@ -53,6 +54,7 @@ run_synthetic_simulations <- function(
   n_batches,
   outdir
   ) {
+  n <- n_batches * batch_size
   set.seed(seed)
   seasonality <- synthetic_seasonality(n)
   nets <- synthetic_nets(n)
@@ -214,10 +216,13 @@ run_row <- function(
     coverages = as.numeric(treatment)
   )
 
-  malariasimulation::run_simulation(
+  malariasimulation::run_simulation_with_repetitions(
     (period + warmup) * year,
-    parameters = parameters
+    5,
+    parameters
   )[c(
+    'timestep',
+    'repetition',
     'n_inc_clinical_0_36500',
     'n_0_36500',
     'n_detect_730_3650',

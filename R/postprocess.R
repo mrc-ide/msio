@@ -33,7 +33,7 @@ get_spec <- function(params) {
   )
 }
 
-get_EIR <- function(result) result$EIR_All
+get_EIR <- function(result) result$EIR_All * 365 / 10000
 
 format_parameters <- function(params, rainfall, warmup, result) {
   year <- 365

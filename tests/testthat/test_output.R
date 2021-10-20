@@ -4,7 +4,7 @@ test_that("format_parameters output is the right size", {
     b = 2,
     c = 3
   )
-  result <- data.frame(EIR_All = rep(4, 5 * 365))
+  result <- data.frame(EIR_All = rep(4, 5 * 365) / 365 * 10000)
   output <- format_parameters(params, seq(365), 5, result)
   expect_equal(output, c(4, 1, 2, 3, seq(365)))
 })
@@ -17,7 +17,7 @@ test_that("format_output summarises correctly", {
     n_730_3650 = rep(100, 5 * 10 * 365),
     n_inc_clinical_0_36500 = rep(100, 5 * 10 * 365),
     n_0_36500 = rep(1000, 5 * 10 * 365),
-    EIR_All = rep(50, 5 * 10 * 365)
+    EIR_All = rep(50, 5 * 10 * 365) / 365 * 10000
   )
   actual <- format_outputs(result, 5)
   expected <- matrix(

@@ -46,6 +46,12 @@ all_params <- c(
   )
 )
 
+all_interventions <- c(
+  'nets',
+  'spraying',
+  'treatment'
+)
+
 #' @description sample a dataframe of params for a paramset
 #' @importFrom stats qunif
 #' @noRd

@@ -1,11 +1,16 @@
+all_outputs <- c('prev', 'inc', 'eir')
+
 format_results <- function(
   params,
   seasonality, 
+  interventions,
   nets,
   spraying,
   treatment,
   warmup,
-  result
+  result,
+  outputs,
+  aggregation
   ) {
   rainfall <- get_rainfall(seasonality)
   list(
@@ -15,12 +20,12 @@ format_results <- function(
       warmup,
       result
     ),
-    timed_parameters = format_timed(nets, spraying, treatment),
-    outputs = format_outputs(result, warmup)
+    timed_parameters = format_timed(interventions, nets, spraying, treatment),
+    outputs = format_outputs(result, warmup, outputs, aggregation)
   )
 }
 
-get_spec <- function(params) {
+get_spec <- function(params, interventions) {
   n <- names(params)
   n[[1]] <- 'baseline_EIR'
   list(
@@ -28,7 +33,7 @@ get_spec <- function(params) {
       n,
       seq(365)
     ),
-    timed_parameters = c('nets', 'spraing', 'treatment'),
+    timed_parameters = interventions,
     outputs = as.character(seq(365))
   )
 }
@@ -46,34 +51,52 @@ format_parameters <- function(params, rainfall, warmup, result) {
   ))
 }
 
-format_timed <- function(nets, spraying, treatment) {
+format_timed <- function(interventions, nets, spraying, treatment) {
+  data <- NULL
+  if ('nets' %in% interventions) {
+    data <- c(data, as.numeric(nets))
+  }
+  if ('spraying' %in% interventions) {
+    data <- c(data, as.numeric(spraying))
+  }
+  if ('treatment' %in% interventions) {
+    data <- c(data, as.numeric(treatment))
+  }
   matrix(
-    c(
-      as.numeric(nets),
-      as.numeric(spraying),
-      as.numeric(treatment)
-    ),
-    ncol = 3,
+    data,
+    ncol = length(interventions),
     nrow = length(nets)
   )
 }
 
-format_outputs <- function(result, warmup) {
+format_outputs <- function(result, warmup, outputs, aggregation) {
   year <- 365
   result <- result[result$timestep > (warmup * year), ]
   row_year <- floor((result$timestep - 1) / year)
-  prev <- result$n_detect_730_3650 / result$n_730_3650
-  inc <- result$n_inc_clinical_0_36500 / result$n_0_36500
-  inc[is.na(inc)] <- 0
-  eir <- get_EIR(result)
-  prev_summary <- summarise(prev, row_year, result$repetition)
-  inc_summary <- summarise(inc, row_year, result$repetition)
-  eir_summary <- summarise(eir, row_year, result$repetition)
-  cbind(prev_summary, inc_summary, eir_summary)
+  if (aggregation == 'yearly') {
+    summarise <- function(x) summarise_yearly(x, row_year, result$repetition)
+  } else {
+    summarise <- function(x) summarise_daily(x, row_year, result$timestep)
+  }
+  data <- list()
+  if ('prev' %in% outputs) {
+    prev <- result$n_detect_730_3650 / result$n_730_3650
+    data[[length(data) + 1]] <- summarise(prev)
+  }
+  if ('inc' %in% outputs) {
+    inc <- result$n_inc_clinical_0_36500 / result$n_0_36500
+    inc[is.na(inc)] <- 0
+    data[[length(data) + 1]] <- summarise(inc)
+  }
+  if ('eir' %in% outputs) {
+    eir <- get_EIR(result)
+    data[[length(data) + 1]] <- summarise(eir)
+  }
+  do.call(cbind, data)
 }
 
 #' @importFrom stats aggregate sd
-summarise <- function(metric, year, repetition) {
+summarise_yearly <- function(metric, year, repetition) {
   avg_year <- aggregate(
     metric,
     by = list(year = year, r = repetition),
@@ -90,6 +113,21 @@ summarise <- function(metric, year, repetition) {
     FUN = sd
   )
   matrix(c(avg_rep$x, sd_rep$x), ncol = 2, nrow = length(avg_rep$x))
+}
+
+#' @importFrom stats aggregate sd
+summarise_daily <- function(metric, year, timestep) {
+  avg_rep <- aggregate(
+    metric,
+    by = list(year = year, r = timestep),
+    FUN = mean
+  )
+  avg_prof <- aggregate(
+    avg_rep$x,
+    by = list(year = avg_rep$year),
+    FUN = as.numeric
+  )
+  avg_prof$x
 }
 
 get_rainfall <- function(seas_row) {

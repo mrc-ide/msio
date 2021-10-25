@@ -1,6 +1,6 @@
 Package: msio
 Title: Malariasimulation Input Output
-Version: 0.0.1
+Version: 0.0.2
 Authors@R: c(
   person(
     given = "Giovanni",

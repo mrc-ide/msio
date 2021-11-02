@@ -58,6 +58,57 @@ run_simulations_from_data <- function(
   )
 }
 
+#' @title Run synthetic simulations
+#' @param node an arbitrary number, useful for tracking multiple executions
+#' @param n_years number of years to simulate
+#' @param warmup number of years to warm up for
+#' @param paramset a list of parameters from sample.R
+#' @param seed random seed
+#' @param batch_size number of runs per batch
+#' @param n_batches number of batches
+#' @param outdir directory to save outputs
+#' @param outputs character vector of outputs to include
+#' @param aggregation type of aggregation for outputs, either 'daily' or 'yearly'
+#' @export
+run_synthetic_simulations <- function(
+  node = 1,
+  n_years = 5,
+  warmup = 5,
+  reps = 10,
+  paramset = basic_params,
+  seed = 42,
+  batch_size = 1,
+  n_batches = 1,
+  outdir = '.',
+  outputs = 'prev',
+  aggregation = 'daily'
+  ) {
+  n <- n_batches * batch_size
+  set.seed(seed)
+  r <- lhs::randomLHS(n, 7)
+  seasonality <- synthetic_seasonality(r)
+  nets <- synthetic_nets(n, n_years)
+  spraying <- synthetic_spraying(n, n_years)
+  treatment <- synthetic_tx(n, n_years)
+
+  run_simulations(
+    node,
+    paramset,
+    seasonality,
+    all_interventions,
+    nets,
+    spraying,
+    treatment,
+    warmup,
+    reps,
+    batch_size,
+    n_batches,
+    outdir,
+    outputs,
+    aggregation
+  )
+}
+
 run_simulations <- function(
   node,
   paramset,

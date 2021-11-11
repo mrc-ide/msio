@@ -27,7 +27,7 @@ format_results <- function(
 
 get_spec <- function(params, interventions) {
   n <- names(params)
-  n[[1]] <- 'baseline_EIR'
+  n[n == 'init_EIR'] <- 'baseline_EIR'
   list(
     parameters = c(
       n,

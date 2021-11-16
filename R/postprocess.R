@@ -21,7 +21,8 @@ format_results <- function(
       result
     ),
     timed_parameters = format_timed(interventions, nets, spraying, treatment),
-    outputs = format_outputs(result, warmup, outputs, aggregation)
+    outputs = format_outputs(result, warmup, outputs, aggregation),
+    notes = list(warmup_eirs = warmup_eirs(result, warmup))
   )
 }
 
@@ -41,14 +42,27 @@ get_spec <- function(params, interventions) {
 get_EIR <- function(result) result$EIR_All * 365 / 10000
 
 format_parameters <- function(params, rainfall, warmup, result) {
-  year <- 365
   row <- params
-  row$init_EIR <- NULL
+  row$init_EIR <- estimate_baseline(result, warmup)
   as.numeric(c(
-    mean(get_EIR(result)[seq((warmup - 1) * year, warmup * year)]),
     row,
     rainfall
   ))
+}
+
+estimate_baseline <- function(result, warmup) {
+  year <- 365
+  period <- (
+    result$timestep >= (warmup - 1) * year
+  ) & (result$timestep < warmup * year)
+  period_df <- result[period,]
+  mean(
+    aggregate(
+      get_EIR(period_df),
+      by=list(rep = period_df$repetition),
+      FUN=mean
+    )$x
+  )
 }
 
 format_timed <- function(interventions, nets, spraying, treatment) {
@@ -71,7 +85,7 @@ format_timed <- function(interventions, nets, spraying, treatment) {
 
 format_outputs <- function(result, warmup, outputs, aggregation) {
   year <- 365
-  result <- result[result$timestep > (warmup * year), ]
+  result <- result[result$timestep > warmup * year, ]
   row_year <- floor((result$timestep - 1) / year)
   if (aggregation == 'yearly') {
     summarise <- function(x) summarise_yearly(x, row_year, result$repetition)
@@ -141,4 +155,21 @@ get_rainfall <- function(seas_row) {
     ),
     numeric(1)
   )
+}
+
+warmup_eirs <- function(results, warmup) {
+  year <- 365
+  results <- results[results$timestep < warmup * year,]
+  result_year <- floor(results$timestep / year)
+  per_run <- aggregate(
+    get_EIR(results),
+    by=list(year = result_year, rep = results$repetition),
+    FUN=mean
+  )
+  per_year <- aggregate(
+    per_run$x,
+    by=list(year = per_run$year),
+    FUN=mean
+  )
+  as.numeric(per_year[order(per_year$year),'x'])
 }

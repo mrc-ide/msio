@@ -233,7 +233,7 @@ run_row <- function(
     # bednets
     parameters <- malariasimulation::set_bednets(
       parameters,
-      timesteps = one_round_timesteps + (warmup * year),
+      timesteps = one_round_timesteps + warmup * year,
       coverages = as.numeric(nets),
       retention = 5 * year,
       dn0 = matrix(.533, nrow=period, ncol=1),
@@ -247,7 +247,7 @@ run_row <- function(
     # spraying
     parameters <- malariasimulation::set_spraying(
       parameters,
-      timesteps = one_round_timesteps + (warmup * year),
+      timesteps = one_round_timesteps + warmup * year,
       coverages = as.numeric(spraying),
       ls_theta = matrix(2.025, nrow=period, ncol=1),
       ls_gamma = matrix(-0.009, nrow=period, ncol=1),

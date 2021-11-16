@@ -126,7 +126,9 @@ summarise_yearly <- function(metric, year, repetition) {
     by = list(year = avg_year$year),
     FUN = sd
   )
-  matrix(c(avg_rep$x, sd_rep$x), ncol = 2, nrow = length(avg_rep$x))
+  avg_rep <- avg_rep[order(avg_rep$year), 'x']
+  avg_sd <- avg_sd[order(avg_sd$year), 'x']
+  matrix(c(avg_rep, sd_rep), ncol = 2, nrow = length(avg_rep))
 }
 
 #' @importFrom stats aggregate sd
@@ -141,7 +143,7 @@ summarise_daily <- function(metric, year, timestep) {
     by = list(year = avg_rep$year),
     FUN = as.numeric
   )
-  avg_prof$x
+  avg_prof[order(avg_prof$year), 'x']
 }
 
 get_rainfall <- function(seas_row) {

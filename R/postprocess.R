@@ -3,6 +3,8 @@ all_outputs <- c('prev', 'inc', 'eir')
 format_results <- function(
   params,
   seasonality, 
+  species_proportions, 
+  demography, 
   interventions,
   nets,
   spraying,
@@ -16,6 +18,8 @@ format_results <- function(
   list(
     parameters = format_parameters(
       params,
+      species_proportions,
+      demography,
       rainfall,
       warmup,
       result
@@ -32,6 +36,8 @@ get_spec <- function(params, interventions) {
   list(
     parameters = c(
       n,
+      c('arab_prop', 'fun_prop', 'gamb_prop'),
+      'average_age',
       seq(365)
     ),
     timed_parameters = interventions,
@@ -39,13 +45,24 @@ get_spec <- function(params, interventions) {
   )
 }
 
-get_EIR <- function(result) result$EIR_All * 365 / 10000
+get_EIR <- function(result) {
+  (result$EIR_arab + result$EIR_fun + result$EIR_gamb) * 365 / 10000
+}
 
-format_parameters <- function(params, rainfall, warmup, result) {
+format_parameters <- function(
+  params,
+  species_proportions,
+  demography,
+  rainfall,
+  warmup,
+  result
+  ) {
   row <- params
   row$init_EIR <- estimate_baseline(result, warmup)
   as.numeric(c(
     row,
+    species_proportions,
+    demography,
     rainfall
   ))
 }

@@ -29,6 +29,10 @@ run_simulations_from_data <- function(
   stopifnot(length(interventions) > 0)
   n <- n_batches * batch_size
   set.seed(seed)
+  r <- lhs::randomLHS(n, length(paramset) + 3)
+  species_proportions <- synthetic_species(r[,c(1, 2)])
+  demography <- synthetic_demography(r[,3])
+  params <- sample_params(n, paramset, r[,seq_along(paramset) + 3])
   if (is.null(datadir)) {
     datadir <- system.file('default', package='msio')
   }
@@ -42,8 +46,10 @@ run_simulations_from_data <- function(
 
   run_simulations(
     node,
-    paramset,
+    params,
     seasonality,
+    species_proportions,
+    demography,
     interventions,
     nets,
     spraying,
@@ -64,6 +70,7 @@ run_simulations_from_data <- function(
 #' @param warmup number of years to warm up for
 #' @param paramset a list of parameters from sample.R
 #' @param seed random seed
+#' @param interventions vector of interventions to include
 #' @param batch_size number of runs per batch
 #' @param n_batches number of batches
 #' @param outdir directory to save outputs
@@ -77,6 +84,8 @@ run_synthetic_simulations <- function(
   reps = 10,
   paramset = basic_params,
   seed = 42,
+  sites = NULL,
+  interventions = 'nets',
   batch_size = 1,
   n_batches = 1,
   outdir = '.',
@@ -85,17 +94,45 @@ run_synthetic_simulations <- function(
   ) {
   n <- n_batches * batch_size
   set.seed(seed)
-  r <- lhs::randomLHS(n, 7)
-  seasonality <- synthetic_seasonality(r)
+  if (is.null(sites)) {
+    r <- lhs::randomLHS(n, length(paramset) + 10)
+    seasonality <- synthetic_seasonality(r[,seq(7)])
+    species_proportions <- synthetic_species(r[,c(8, 9)])
+    demography <- synthetic_demography(r[,10])
+    params <- sample_params(n, paramset, r[seq_along(paramset) + 9])
+  } else {
+    r <- lhs::randomLHS(n, length(paramset))
+    params <- sample_params(n, paramset, r)
+    site_df <- read.csv(file.path(sites))
+    site_df <- sample_df(site_df, n)
+    seasonality <- site_df[,c(
+      'seasonal_a0',
+      'seasonal_a1',
+      'seasonal_a2',
+      'seasonal_a3',
+      'seasonal_b1',
+      'seasonal_b2',
+      'seasonal_b3'
+    )]
+    species_proportions <- site_df[,c(
+      'arab_prop',
+      'fun_prop',
+      'gamb_prop'
+    )]
+    demography <- site_df$average_age
+  }
+
   nets <- synthetic_nets(n, n_years)
   spraying <- synthetic_spraying(n, n_years)
   treatment <- synthetic_tx(n, n_years)
 
   run_simulations(
     node,
-    paramset,
+    params,
     seasonality,
-    all_interventions,
+    species_proportions,
+    demography,
+    interventions,
     nets,
     spraying,
     treatment,
@@ -111,8 +148,10 @@ run_synthetic_simulations <- function(
 
 run_simulations <- function(
   node,
-  paramset,
+  params,
   seasonality,
+  species_proportions,
+  demography,
   interventions,
   nets,
   spraying,
@@ -127,7 +166,6 @@ run_simulations <- function(
   ) {
   print(paste0('beginning node ', node))
   n <- n_batches * batch_size
-  params <- sample_params(n, paramset)
   batches <- split(
     seq(n),
     (seq(n)-1) %/% batch_size
@@ -145,8 +183,10 @@ run_simulations <- function(
         batches[[batch_i]],
         function(i) {
           run_row(
-            params[i,],
+            params[i,,drop=FALSE],
             seasonality[i,], 
+            species_proportions[i,], 
+            demography[[i]], 
             interventions,
             nets[i,],
             spraying[i,],
@@ -161,8 +201,10 @@ run_simulations <- function(
         seq_along(results),
         function(i) {
           format_results(
-            params[i,],
+            params[i,,drop=FALSE],
             seasonality[i,], 
+            species_proportions[i,], 
+            demography[[i]], 
             interventions,
             nets[i,],
             spraying[i,],
@@ -186,6 +228,8 @@ run_simulations <- function(
 run_row <- function(
   params,
   seasonality, 
+  species_proportions,
+  demography,
   interventions,
   nets,
   spraying,
@@ -201,6 +245,7 @@ run_row <- function(
     c(
       list(
         human_population = 10000,
+        average_age = demography,
         individual_mosquitoes = FALSE,
         model_seasonality = TRUE,
         g0 = seas_row$seasonal_a0,
@@ -224,6 +269,16 @@ run_row <- function(
     )
   )
 
+  parameters <- malariasimulation::set_species(
+    parameters,
+    species = list(
+      malariasimulation::arab_params,
+      malariasimulation::fun_params,
+      malariasimulation::gamb_params
+    ),
+    proportions = species_proportions / sum(species_proportions)
+  )
+
   parameters <- malariasimulation::set_equilibrium(parameters, params$init_EIR)
   
   period <- length(nets)
@@ -236,9 +291,9 @@ run_row <- function(
       timesteps = one_round_timesteps + warmup * year,
       coverages = as.numeric(nets),
       retention = 5 * year,
-      dn0 = matrix(.533, nrow=period, ncol=1),
-      rn = matrix(.56, nrow=period, ncol=1),
-      rnm = matrix(.24, nrow=period, ncol=1),
+      dn0 = matrix(.533, nrow=period, ncol=3),
+      rn = matrix(.56, nrow=period, ncol=3),
+      rnm = matrix(.24, nrow=period, ncol=3),
       gamman = rep(2.64 * year, period)
     )
   }
@@ -279,7 +334,9 @@ run_row <- function(
     'n_0_36500',
     'n_detect_730_3650',
     'n_730_3650',
-    'EIR_All'
+    'EIR_arab',
+    'EIR_fun',
+    'EIR_gamb'
   )]
 }
 
@@ -288,6 +345,9 @@ params_from_sample <- function(params) {
   if (!is.null(params$b1_prop)) {
     params$b1 <- params$b0 * params$b1_prop
     params$b1_prop <- NULL
+  }
+  if (length(params) == 1) {
+    return(NULL)
   }
   params
 }

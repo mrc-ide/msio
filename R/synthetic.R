@@ -35,3 +35,11 @@ bounded_gauss_random_walk <- function(start, n, sigma) {
   }
   walk
 }
+
+synthetic_species <- function(r) {
+  stop('todo')
+}
+
+synthetic_demography <- function(r) {
+  stop('todo')
+}

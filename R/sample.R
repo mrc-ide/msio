@@ -2,11 +2,7 @@
 #' @description parameters for simple global runs
 #' @export
 basic_params <- list(
-  average_age = list(min=20 * 365, max=40 * 365),
-  init_EIR = list(min=0, max=100),
-  Q0 = list(min=0, max=1),
-  phi_indoors = list(min=0, max=1),
-  phi_bednets = list(min=0, max=1)
+  init_EIR = list(min=0, max=100)
 )
 
 #' @title extended parameters for inference
@@ -55,7 +51,7 @@ all_interventions <- c(
 #' @description sample a dataframe of params for a paramset
 #' @importFrom stats qunif
 #' @noRd
-sample_params <- function(n, paramset) {
+sample_params <- function(n, paramset, r) {
   r <- lhs::randomLHS(n, length(paramset))
   cols <- lapply(
     seq_along(paramset),

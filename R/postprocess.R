@@ -170,7 +170,8 @@ get_rainfall <- function(seas_row) {
       t,
       g0 = seas_row$seasonal_a0,
       g = c(seas_row$seasonal_a1, seas_row$seasonal_a2, seas_row$seasonal_a3),
-      h = c(seas_row$seasonal_b1, seas_row$seasonal_b2, seas_row$seasonal_b3)
+      h = c(seas_row$seasonal_b1, seas_row$seasonal_b2, seas_row$seasonal_b3),
+      floor = 0.001
     ),
     numeric(1)
   )

@@ -90,7 +90,8 @@ run_synthetic_simulations <- function(
   n_batches = 1,
   outdir = '.',
   outputs = 'prev',
-  aggregation = 'daily'
+  aggregation = 'daily',
+  synthetic_intervention_method='lhs'
   ) {
   n <- n_batches * batch_size
   set.seed(seed)
@@ -122,9 +123,26 @@ run_synthetic_simulations <- function(
     demography <- site_df$average_age
   }
 
-  nets <- synthetic_nets(n, n_years)
-  spraying <- synthetic_spraying(n, n_years)
-  treatment <- synthetic_tx(n, n_years)
+  if (synthetic_intervention_method == 'lhs') {
+    r <- lhs::randomLHS(n * n_years, length(interventions))
+    i <- 1
+    if ('nets' %in% interventions) {
+      nets <- synthetic_nets_lhs(n, n_years, r[, i])
+      i <- i + 1
+    }
+    if ('spraying' %in% interventions) {
+      spraying <- synthetic_spraying_lhs(n, n_years, r[, i])
+      i <- i + 1
+    }
+    if ('treatment' %in% interventions) {
+      treatment <- synthetic_tx_lhs(n, n_years, r[, i])
+      i <- i + 1
+    }
+  } else if (synthetic_intervention_method == 'bgw') {
+    nets <- synthetic_nets(n, n_years)
+    spraying <- synthetic_spraying(n, n_years)
+    treatment <- synthetic_tx(n, n_years)
+  }
 
   run_simulations(
     node,

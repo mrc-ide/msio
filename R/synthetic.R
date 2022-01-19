@@ -25,6 +25,18 @@ synthetic_tx <- function(n, n_years) {
   bounded_gauss_random_walk(start, n_years, .1)
 }
 
+synthetic_nets_lhs <- function(n, n_years, r) {
+  matrix(r, nrow=n, ncol=n_years)
+}
+
+synthetic_spraying_lhs <- function(n, n_years, r) {
+  matrix(r, nrow=n, ncol=n_years)
+}
+
+synthetic_tx_lhs <- function(n, n_years, r) {
+  matrix(r, nrow=n, ncol=n_years)
+}
+
 bounded_gauss_random_walk <- function(start, n, sigma) {
   walk <- start
   for (i in seq(2, n)) {

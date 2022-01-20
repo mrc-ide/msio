@@ -26,7 +26,10 @@ format_results <- function(
     ),
     timed_parameters = format_timed(interventions, nets, spraying, treatment),
     outputs = format_outputs(result, warmup, outputs, aggregation),
-    notes = list(warmup_eirs = warmup_eirs(result, warmup))
+    notes = list(
+      warmup_eirs = warmup_eirs(result, warmup),
+      equilibrium = equilibrium(result, warmup, outputs, aggregation)
+    )
   )
 }
 
@@ -102,7 +105,19 @@ format_timed <- function(interventions, nets, spraying, treatment) {
 
 format_outputs <- function(result, warmup, outputs, aggregation) {
   year <- 365
-  result <- result[result$timestep > warmup * year, ]
+  range <- result$timestep > warmup * year
+  format_outputs_in_range(result, warmup, outputs, aggregation, range)
+}
+
+equilibrium <- function(result, warmup, outputs, aggregation) {
+  year <- 365
+  range <- (result$timestep > (warmup - 1) * year) & (result$timestep <= warmup * year)
+  format_outputs_in_range(result, warmup, outputs, aggregation, range)
+}
+
+format_outputs_in_range <- function(result, warmup, outputs, aggregation, range) {
+  year <- 365
+  result <- result[range, ]
   row_year <- floor((result$timestep - 1) / year)
   if (aggregation == 'yearly') {
     summarise <- function(x) summarise_yearly(x, row_year, result$repetition)

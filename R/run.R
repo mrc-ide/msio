@@ -24,7 +24,8 @@ run_simulations_from_data <- function(
   n_batches = 1,
   outdir = '.',
   outputs = 'prev',
-  aggregation = 'daily'
+  aggregation = 'daily',
+  human_population = 1e5
   ) {
   stopifnot(length(interventions) > 0)
   n <- n_batches * batch_size
@@ -60,7 +61,8 @@ run_simulations_from_data <- function(
     n_batches,
     outdir,
     outputs,
-    aggregation
+    aggregation,
+    human_population
   )
 }
 
@@ -91,7 +93,8 @@ run_synthetic_simulations <- function(
   outdir = '.',
   outputs = 'prev',
   aggregation = 'daily',
-  synthetic_intervention_method='lhs'
+  synthetic_intervention_method='lhs',
+  human_population = 1e5
   ) {
   n <- n_batches * batch_size
   set.seed(seed)
@@ -160,7 +163,8 @@ run_synthetic_simulations <- function(
     n_batches,
     outdir,
     outputs,
-    aggregation
+    aggregation,
+    human_population
   )
 }
 
@@ -180,7 +184,8 @@ run_simulations <- function(
   n_batches,
   outdir,
   outputs,
-  aggregation
+  aggregation,
+  human_population
   ) {
   print(paste0('beginning node ', node))
   n <- n_batches * batch_size
@@ -210,7 +215,8 @@ run_simulations <- function(
             spraying[i,],
             treatment[i,],
             warmup,
-            reps
+            reps,
+            human_population
           )
         }
       )
@@ -253,7 +259,8 @@ run_row <- function(
   spraying,
   treatment,
   warmup,
-  reps
+  reps,
+  human_population
   ) {
   year <- 365
   row <- params_from_sample(params)
@@ -262,7 +269,7 @@ run_row <- function(
   parameters <- malariasimulation::get_parameters(
     c(
       list(
-        human_population = 10000,
+        human_population = human_population,
         average_age = demography,
         individual_mosquitoes = FALSE,
         model_seasonality = TRUE,

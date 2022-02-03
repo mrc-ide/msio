@@ -129,6 +129,10 @@ format_outputs_in_range <- function(result, warmup, outputs, aggregation, range)
     prev <- result$n_detect_730_3650 / result$n_730_3650
     data[[length(data) + 1]] <- summarise(prev)
   }
+  if ('prev_6_59' %in% outputs) {
+    prev <- result$n_detect_180_1799 / result$n_180_1799
+    data[[length(data) + 1]] <- summarise(prev)
+  }
   if ('inc' %in% outputs) {
     inc <- result$n_inc_clinical_0_36500 / result$n_0_36500
     inc[is.na(inc)] <- 0

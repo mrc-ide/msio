@@ -263,6 +263,7 @@ run_row <- function(
   human_population
   ) {
   year <- 365
+  month <- 30
   row <- params_from_sample(params)
   
   seas_row <- seasonality
@@ -276,8 +277,8 @@ run_row <- function(
         g0 = seas_row$seasonal_a0,
         g = c(seas_row$seasonal_a1, seas_row$seasonal_a2, seas_row$seasonal_a3),
         h = c(seas_row$seasonal_b1, seas_row$seasonal_b2, seas_row$seasonal_b3),
-        prevalence_rendering_min_ages = c(2 * year),
-        prevalence_rendering_max_ages = c(10 * year),
+        prevalence_rendering_min_ages = c(6 * month, 2 * year),
+        prevalence_rendering_max_ages = c(60 * month - 1, 10 * year),
         clinical_incidence_rendering_min_ages = 0,
         clinical_incidence_rendering_max_ages = 100 * year
       ),
@@ -359,6 +360,8 @@ run_row <- function(
     'n_0_36500',
     'n_detect_730_3650',
     'n_730_3650',
+    'n_detect_180_1799',
+    'n_180_1799',
     'EIR_arab',
     'EIR_fun',
     'EIR_gamb'

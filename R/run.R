@@ -10,6 +10,8 @@
 #' @param outdir directory to save outputs
 #' @param outputs character vector of outputs to include
 #' @param aggregation type of aggregation for outputs, either 'daily' or 'yearly'
+#' DEPRECATED, use synthetic_intervention_method = 'historic'
+#'
 #' @importFrom utils read.csv
 #' @export
 run_simulations_from_data <- function(
@@ -99,11 +101,11 @@ run_synthetic_simulations <- function(
   n <- n_batches * batch_size
   set.seed(seed)
   if (is.null(sites)) {
-    r <- lhs::randomLHS(n, length(paramset) + 10)
-    seasonality <- synthetic_seasonality(r[,seq(7)])
-    species_proportions <- synthetic_species(r[,c(8, 9)])
-    demography <- synthetic_demography(r[,10])
-    params <- sample_params(n, paramset, r[seq_along(paramset) + 9])
+    r <- lhs::randomLHS(n, length(paramset) + 11)
+    seasonality <- synthetic_seasonality(r[,seq(7), drop=FALSE])
+    species_proportions <- synthetic_species(r[,c(8, 9, 10), drop=FALSE])
+    demography <- synthetic_demography(r[,11,drop=FALSE])
+    params <- sample_params(n, paramset, r[seq_along(paramset) + 11,drop=FALSE])
   } else {
     r <- lhs::randomLHS(n, length(paramset))
     params <- sample_params(n, paramset, r)
@@ -145,6 +147,17 @@ run_synthetic_simulations <- function(
     nets <- synthetic_nets(n, n_years)
     spraying <- synthetic_spraying(n, n_years)
     treatment <- synthetic_tx(n, n_years)
+  } else if (synthetic_intervention_method == 'historic') {
+    datadir <- system.file('default', package='msio')
+    nets <- sample_intervention(read.csv(file.path(datadir, 'nets.csv')), n)
+    spraying <- sample_intervention(
+      read.csv(file.path(datadir, 'spraying.csv')),
+      n
+    )
+    treatment <- sample_intervention(
+      read.csv(file.path(datadir, 'treatment.csv')),
+      n
+    )
   }
 
   run_simulations(

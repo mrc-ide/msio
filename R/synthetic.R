@@ -49,9 +49,14 @@ bounded_gauss_random_walk <- function(start, n, sigma) {
 }
 
 synthetic_species <- function(r) {
-  stop('todo')
+  r <- r / rowSums(r)
+  data.frame(list(
+    arab_prop = r[,1],
+    fun_prop = r[,2],
+    gamb_prop = r[,3]
+  ))
 }
 
 synthetic_demography <- function(r) {
-  stop('todo')
+  qunif(r[,1], min=15*365, max=60*365)
 }

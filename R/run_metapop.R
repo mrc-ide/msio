@@ -11,11 +11,10 @@
 #' @param outputs character vector of outputs to include
 #' @param aggregation type of aggregation for outputs, either 'daily' or 'yearly'
 #' @export
-run_synthetic_simulations <- function(
+run_synthetic_metapop_simulations <- function(
   node = 1,
   n_years = 5,
   warmup = 5,
-  reps = 10,
   paramset = basic_params,
   seed = 42,
   sites = NULL,
@@ -23,49 +22,64 @@ run_synthetic_simulations <- function(
   batch_size = 1,
   n_batches = 1,
   outdir = '.',
-  outputs = 'prev',
+  outputs = c('prev', 'eir', 'infectivity'),
   aggregation = 'daily',
   synthetic_intervention_method='lhs',
-  human_population = 1e5
+  human_population = 1e5,
+  n_pop = 2
   ) {
   n <- n_batches * batch_size
   set.seed(seed)
-  samples <- create_samples(
-    n_years,
-    paramset,
-    sites,
-    interventions,
-    synthetic_intervention_method,
-    n
+  samples <- lapply(
+    seq(n_pop),
+    function(.) {
+      create_samples(
+        n_years,
+        paramset,
+        sites,
+        interventions,
+        synthetic_intervention_method,
+        n
+      )
+    }
   )
 
-  run_simulations(
+  r <- lhs::randomLHS(n, n_pop ^ 2)
+  mixing_matrices <- lapply(
+    seq(nrow(r)),
+    function(i) {
+      m <- matrix(r[i,], nrow = n_pop, ncol = n_pop)
+      m / rowSums(m)
+    }
+  )
+
+  run_metapop_simulations(
     node,
     samples,
     interventions,
     warmup,
-    reps,
     batch_size,
     n_batches,
     outdir,
     outputs,
     aggregation,
-    human_population
+    human_population,
+    mixing_matrices
   )
 }
 
-run_simulations <- function(
+run_metapop_simulations <- function(
   node,
   samples,
   interventions,
   warmup,
-  reps,
   batch_size,
   n_batches,
   outdir,
   outputs,
   aggregation,
-  human_population
+  human_population,
+  mixing_matrices
   ) {
   print(paste0('beginning node ', node))
   n <- n_batches * batch_size
@@ -85,29 +99,37 @@ run_simulations <- function(
       results <- lapply(
         batches[[batch_i]],
         function(i) {
-          run_row(
-            samples[[i]],
+          run_metapop_row(
+            lapply(seq_along(samples), function(pop) samples[[pop]][[i]]),
             interventions,
             warmup,
-            reps,
-            human_population
+            human_population,
+            mixing_matrices[[i]]
           )
         }
       )
 
-      output <- lapply(
-        seq_along(results),
-        function(i) {
-          format_results(
-            samples[[i]],
-            interventions,
-            warmup,
-            results[[i]],
-            outputs,
-            aggregation
+      output <- NULL
+
+      for (i in seq_along(results)) {
+        for (pop in seq_along(samples)) {
+          output <- c(
+            output,
+            list(
+              format_metapop_results(
+                samples[[pop]][[i]],
+                interventions,
+                warmup,
+                results[[i]][[pop]],
+                outputs,
+                aggregation,
+                mixing_matrices[[i]],
+                pop
+              )
+            )
           )
         }
-      )
+      }
 
       jsonlite::write_json(output, outpath, auto_unbox=TRUE, pretty=TRUE)
       print(paste0('node ', node, ' batch ', batch_i, ' completed'))
@@ -117,39 +139,45 @@ run_simulations <- function(
   }
 }
 
-run_row <- function(
-  sample_i,
+run_metapop_row <- function(
+  samples,
   interventions,
   warmup,
-  reps,
-  human_population
+  human_population,
+  mixing
   ) {
   year <- 365
   month <- 30
-
-  period <- length(sample_i$nets)
-  parameters <- params_from_sample(
-    sample_i,
-    warmup,
-    human_population,
-    interventions
+  period <- length(samples[[1]]$nets)
+  
+  parameters <- lapply(
+    samples,
+    function(s) params_from_sample(s, warmup, human_population, interventions)
   )
 
-  malariasimulation::run_simulation_with_repetitions(
-    (period + warmup) * year,
-    reps,
-    parameters
-  )[c(
-    'timestep',
-    'repetition',
-    'n_inc_clinical_0_36500',
-    'n_0_36500',
-    'n_detect_730_3650',
-    'n_730_3650',
-    'n_detect_180_1799',
-    'n_180_1799',
-    'EIR_arab',
-    'EIR_fun',
-    'EIR_gamb'
-  )]
+  lapply(
+    malariasimulation::run_metapop_simulation(
+      (period + warmup) * year,
+      parameters,
+      NULL,
+      mixing
+    ),
+    function(df) {
+      df$repetition <- 1
+      df[c(
+        'timestep',
+        'repetition',
+        'n_inc_clinical_0_36500',
+        'n_0_36500',
+        'n_detect_730_3650',
+        'n_730_3650',
+        'n_detect_180_1799',
+        'n_180_1799',
+        'EIR_arab',
+        'EIR_fun',
+        'EIR_gamb',
+        'infectivity'
+      )]
+    }
+  )
 }

@@ -56,7 +56,3 @@ synthetic_species <- function(r) {
     gamb_prop = r[,3]
   ))
 }
-
-synthetic_demography <- function(r) {
-  qunif(r[,1], min=15*365, max=60*365)
-}

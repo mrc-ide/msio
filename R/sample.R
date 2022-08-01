@@ -2,7 +2,8 @@
 #' @description parameters for simple global runs
 #' @export
 basic_params <- list(
-  init_EIR = list(min=0, max=100)
+  init_EIR = list(min=0, max=100),
+  average_age = list(min=15*365, max=60*365)
 )
 
 #' @title extended parameters for inference

@@ -1,30 +1,28 @@
 all_outputs <- c('prev', 'inc', 'eir')
 
 format_results <- function(
-  params,
-  seasonality, 
-  species_proportions, 
-  demography, 
+  sample_i,
   interventions,
-  nets,
-  spraying,
-  treatment,
   warmup,
   result,
   outputs,
   aggregation
   ) {
-  rainfall <- get_rainfall(seasonality)
+  rainfall <- get_rainfall(sample_i$seasonality)
   list(
     parameters = format_parameters(
-      params,
-      species_proportions,
-      demography,
+      sample_i$params,
+      sample_i$species_proportions,
       rainfall,
       warmup,
       result
     ),
-    timed_parameters = format_timed(interventions, nets, spraying, treatment),
+    timed_parameters = format_timed(
+      interventions,
+      sample_i$nets,
+      sample_i$spraying,
+      sample_i$treatment
+    ),
     outputs = format_outputs(result, warmup, outputs, aggregation),
     notes = list(
       warmup_eirs = warmup_eirs(result, warmup),
@@ -55,7 +53,6 @@ get_EIR <- function(result) {
 format_parameters <- function(
   params,
   species_proportions,
-  demography,
   rainfall,
   warmup,
   result
@@ -65,7 +62,6 @@ format_parameters <- function(
   as.numeric(c(
     row,
     species_proportions,
-    demography,
     rainfall
   ))
 }

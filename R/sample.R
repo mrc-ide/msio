@@ -2,7 +2,7 @@
 #' @description parameters for simple global runs
 #' @export
 basic_params <- list(
-  init_EIR = list(min=0, max=100)
+  init_EIR = list(min=0, max=500)
 )
 
 #' @title extended parameters for inference

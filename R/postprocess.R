@@ -12,9 +12,16 @@ format_results <- function(
   warmup,
   result,
   outputs,
-  aggregation
+  aggregation,
+  seasonality_output
   ) {
-  rainfall <- get_rainfall(seasonality)
+  if (seasonality_output == 'daily') {
+    rainfall <- get_rainfall(seasonality)
+  } else if (seasonality_output == 'coefficients') {
+    rainfall <- seasonality
+  } else {
+    stop('unknown seasonality output')
+  }
   list(
     parameters = format_parameters(
       params,

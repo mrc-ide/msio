@@ -5,7 +5,7 @@
 \alias{all_params}
 \title{all parameters for inference}
 \format{
-An object of class \code{list} of length 20.
+An object of class \code{list} of length 16.
 }
 \usage{
 all_params

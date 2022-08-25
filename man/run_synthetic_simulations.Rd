@@ -11,11 +11,16 @@ run_synthetic_simulations(
   reps = 10,
   paramset = basic_params,
   seed = 42,
+  sites = NULL,
+  interventions = "nets",
   batch_size = 1,
   n_batches = 1,
   outdir = ".",
   outputs = "prev",
-  aggregation = "daily"
+  aggregation = "daily",
+  synthetic_intervention_method = "lhs",
+  human_population = 1e+05,
+  seasonality_output = "daily"
 )
 }
 \arguments{
@@ -28,6 +33,8 @@ run_synthetic_simulations(
 \item{paramset}{a list of parameters from sample.R}
 
 \item{seed}{random seed}
+
+\item{interventions}{vector of interventions to include}
 
 \item{batch_size}{number of runs per batch}
 

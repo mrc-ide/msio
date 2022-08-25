@@ -5,7 +5,7 @@
 \alias{extended_params}
 \title{extended parameters for inference}
 \format{
-An object of class \code{list} of length 11.
+An object of class \code{list} of length 7.
 }
 \usage{
 extended_params

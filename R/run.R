@@ -1,73 +1,3 @@
-#' @title Run simulations from data
-#' @param node an arbitrary number, useful for tracking multiple executions
-#' @param warmup number of years to warm up for
-#' @param paramset a list of parameters from sample.R
-#' @param seed random seed
-#' @param datadir directory for global data to sample from
-#' @param interventions character vector of interventions to include
-#' @param batch_size number of runs per batch
-#' @param n_batches number of batches
-#' @param outdir directory to save outputs
-#' @param outputs character vector of outputs to include
-#' @param aggregation type of aggregation for outputs, either 'daily' or 'yearly'
-#' DEPRECATED, use synthetic_intervention_method = 'historic'
-#'
-#' @importFrom utils read.csv
-#' @export
-run_simulations_from_data <- function(
-  node = 1,
-  warmup = 5,
-  reps = 10,
-  paramset = basic_params,
-  seed = 42,
-  datadir = NULL,
-  interventions = 'nets',
-  batch_size = 1,
-  n_batches = 1,
-  outdir = '.',
-  outputs = 'prev',
-  aggregation = 'daily',
-  human_population = 1e5
-  ) {
-  stopifnot(length(interventions) > 0)
-  n <- n_batches * batch_size
-  set.seed(seed)
-  r <- lhs::randomLHS(n, length(paramset) + 3)
-  species_proportions <- synthetic_species(r[,c(1, 2)])
-  demography <- synthetic_demography(r[,3])
-  params <- sample_params(n, paramset, r[,seq_along(paramset) + 3])
-  if (is.null(datadir)) {
-    datadir <- system.file('default', package='msio')
-  }
-  seasonality <- sample_df(
-    read.csv(file.path(datadir, 'seasonality.csv')),
-    n
-  )
-  nets <- sample_intervention(read.csv(file.path(datadir, 'nets.csv')), n)
-  spraying <- sample_intervention(read.csv(file.path(datadir, 'spraying.csv')), n)
-  treatment <- sample_intervention(read.csv(file.path(datadir, 'treatment.csv')), n)
-
-  run_simulations(
-    node,
-    params,
-    seasonality,
-    species_proportions,
-    demography,
-    interventions,
-    nets,
-    spraying,
-    treatment,
-    warmup,
-    reps,
-    batch_size,
-    n_batches,
-    outdir,
-    outputs,
-    aggregation,
-    human_population
-  )
-}
-
 #' @title Run synthetic simulations
 #' @param node an arbitrary number, useful for tracking multiple executions
 #' @param n_years number of years to simulate
@@ -96,7 +26,8 @@ run_synthetic_simulations <- function(
   outputs = 'prev',
   aggregation = 'daily',
   synthetic_intervention_method='lhs',
-  human_population = 1e5
+  human_population = 1e5,
+  seasonality_output = 'daily'
   ) {
   n <- n_batches * batch_size
   set.seed(seed)
@@ -177,7 +108,8 @@ run_synthetic_simulations <- function(
     outdir,
     outputs,
     aggregation,
-    human_population
+    human_population,
+    seasonality_output
   )
 }
 
@@ -198,7 +130,8 @@ run_simulations <- function(
   outdir,
   outputs,
   aggregation,
-  human_population
+  human_population,
+  seasonality_output
   ) {
   print(paste0('beginning node ', node))
   n <- n_batches * batch_size
@@ -249,7 +182,8 @@ run_simulations <- function(
             warmup,
             results[[i]],
             outputs,
-            aggregation
+            aggregation,
+            seasonality_output
           )
         }
       )

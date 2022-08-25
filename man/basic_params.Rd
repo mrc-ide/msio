@@ -5,7 +5,7 @@
 \alias{basic_params}
 \title{basic model parameters}
 \format{
-An object of class \code{list} of length 5.
+An object of class \code{list} of length 1.
 }
 \usage{
 basic_params

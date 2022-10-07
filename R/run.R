@@ -1,7 +1,6 @@
 #' @title Run synthetic simulations
 #' @param node an arbitrary number, useful for tracking multiple executions
 #' @param n_years number of years to simulate
-#' @param warmup number of years to warm up for
 #' @param paramset a list of parameters from sample.R
 #' @param seed random seed
 #' @param interventions vector of interventions to include
@@ -9,13 +8,10 @@
 #' @param n_batches number of batches
 #' @param outdir directory to save outputs
 #' @param outputs character vector of outputs to include
-#' @param aggregation type of aggregation for outputs, either 'daily' or 'yearly'
 #' @export
 run_synthetic_simulations <- function(
   node = 1,
   n_years = 5,
-  warmup = 5,
-  reps = 10,
   paramset = basic_params,
   seed = 42,
   sites = NULL,
@@ -24,10 +20,10 @@ run_synthetic_simulations <- function(
   n_batches = 1,
   outdir = '.',
   outputs = 'prev',
-  aggregation = 'daily',
   synthetic_intervention_method='lhs',
   human_population = 1e5,
-  seasonality_output = 'daily'
+  seasonality_output = 'daily',
+  tolerance = 1e-1
   ) {
   n <- n_batches * batch_size
   set.seed(seed)
@@ -101,15 +97,13 @@ run_synthetic_simulations <- function(
     nets,
     spraying,
     treatment,
-    warmup,
-    reps,
     batch_size,
     n_batches,
     outdir,
     outputs,
-    aggregation,
     human_population,
-    seasonality_output
+    seasonality_output,
+    tolerance
   )
 }
 
@@ -123,15 +117,13 @@ run_simulations <- function(
   nets,
   spraying,
   treatment,
-  warmup,
-  reps,
   batch_size,
   n_batches,
   outdir,
   outputs,
-  aggregation,
   human_population,
-  seasonality_output
+  seasonality_output,
+  tolerance
   ) {
   print(paste0('beginning node ', node))
   n <- n_batches * batch_size
@@ -160,9 +152,8 @@ run_simulations <- function(
             nets[i,],
             spraying[i,],
             treatment[i,],
-            warmup,
-            reps,
-            human_population
+            human_population,
+            tolerance
           )
         }
       )
@@ -179,10 +170,8 @@ run_simulations <- function(
             nets[i,],
             spraying[i,],
             treatment[i,],
-            warmup,
             results[[i]],
             outputs,
-            aggregation,
             seasonality_output
           )
         }
@@ -205,9 +194,8 @@ run_row <- function(
   nets,
   spraying,
   treatment,
-  warmup,
-  reps,
-  human_population
+  human_population,
+  tolerance
   ) {
   year <- 365
   month <- 30
@@ -257,62 +245,63 @@ run_row <- function(
   period <- length(nets)
   one_round_timesteps <- seq(0, period - 1) * year
 
-  if ('nets' %in% interventions) {
-    # bednets
-    parameters <- malariasimulation::set_bednets(
-      parameters,
-      timesteps = one_round_timesteps + warmup * year,
-      coverages = as.numeric(nets),
-      retention = 5 * year,
-      dn0 = matrix(.533, nrow=period, ncol=3),
-      rn = matrix(.56, nrow=period, ncol=3),
-      rnm = matrix(.24, nrow=period, ncol=3),
-      gamman = rep(2.64 * year, period)
-    )
-  }
+  post_warmup_parameters <- function(warmup) {
+    if ('nets' %in% interventions) {
+      # bednets
+      parameters <- malariasimulation::set_bednets(
+        parameters,
+        timesteps = one_round_timesteps + warmup,
+        coverages = as.numeric(nets),
+        retention = 5 * year,
+        dn0 = matrix(.533, nrow=period, ncol=3),
+        rn = matrix(.56, nrow=period, ncol=3),
+        rnm = matrix(.24, nrow=period, ncol=3),
+        gamman = rep(2.64 * year, period)
+      )
+    }
 
-  if ('spraying' %in% interventions) {
-    # spraying
-    parameters <- malariasimulation::set_spraying(
-      parameters,
-      timesteps = one_round_timesteps + warmup * year,
-      coverages = as.numeric(spraying),
-      ls_theta = matrix(2.025, nrow=period, ncol=1),
-      ls_gamma = matrix(-0.009, nrow=period, ncol=1),
-      ks_theta = matrix(-2.222, nrow=period, ncol=1),
-      ks_gamma = matrix(0.008, nrow=period, ncol=1),
-      ms_theta = matrix(-1.232, nrow=period, ncol=1),
-      ms_gamma = matrix(-0.009, nrow=period, ncol=1)
-    )
-  }
+    if ('spraying' %in% interventions) {
+      # spraying
+      parameters <- malariasimulation::set_spraying(
+        parameters,
+        timesteps = one_round_timesteps + warmup,
+        coverages = as.numeric(spraying),
+        ls_theta = matrix(2.025, nrow=period, ncol=1),
+        ls_gamma = matrix(-0.009, nrow=period, ncol=1),
+        ks_theta = matrix(-2.222, nrow=period, ncol=1),
+        ks_gamma = matrix(0.008, nrow=period, ncol=1),
+        ms_theta = matrix(-1.232, nrow=period, ncol=1),
+        ms_gamma = matrix(-0.009, nrow=period, ncol=1)
+      )
+    }
 
-  if ('treatment' %in% interventions) {
-    # tx
-    parameters <- malariasimulation::set_clinical_treatment(
-      parameters,
-      drug = 2,
-      timesteps = one_round_timesteps + warmup * year,
-      coverages = as.numeric(treatment)
-    )
-  }
+    if ('treatment' %in% interventions) {
+      # tx
+      parameters <- malariasimulation::set_clinical_treatment(
+        parameters,
+        drug = 2,
+        timesteps = one_round_timesteps + warmup,
+        coverages = as.numeric(treatment)
+      )
+    }
 
-  malariasimulation::run_simulation_with_repetitions(
-    (period + warmup) * year,
-    reps,
     parameters
-  )[c(
-    'timestep',
-    'repetition',
-    'n_inc_clinical_0_36500',
-    'n_0_36500',
-    'n_detect_730_3650',
-    'n_730_3650',
-    'n_detect_180_1799',
-    'n_180_1799',
-    'EIR_arab',
-    'EIR_fun',
-    'EIR_gamb'
-  )]
+  }
+
+  tryCatch(
+    {
+      malariasimulation:::run_simulation_until_stable(
+        parameters,
+        tolerance = tolerance,
+        post_parameters = post_warmup_parameters,
+        post_t = period * year,
+      )
+    },
+    error = function(msg) {
+      print(msg)
+      NULL
+    }
+  )
 }
 
 params_from_sample <- function(params) {

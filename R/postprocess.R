@@ -1,5 +1,3 @@
-all_outputs <- c('prev', 'inc', 'eir')
-
 format_results <- function(
   params,
   seasonality, 
@@ -9,10 +7,8 @@ format_results <- function(
   nets,
   spraying,
   treatment,
-  warmup,
   result,
   outputs,
-  aggregation,
   seasonality_output
   ) {
   if (seasonality_output == 'daily') {
@@ -22,6 +18,9 @@ format_results <- function(
   } else {
     stop('unknown seasonality output')
   }
+  if (is.null(result)) {
+    return(list())
+  }
   list(
     parameters = format_parameters(
       params,
@@ -29,14 +28,10 @@ format_results <- function(
       demography,
       rainfall,
       warmup,
-      result
+      result$pre
     ),
     timed_parameters = format_timed(interventions, nets, spraying, treatment),
-    outputs = format_outputs(result, warmup, outputs, aggregation),
-    notes = list(
-      warmup_eirs = warmup_eirs(result, warmup),
-      equilibrium = equilibrium(result, warmup, outputs, aggregation)
-    )
+    outputs = format_outputs(result$post, outputs)
   )
 }
 
@@ -65,10 +60,10 @@ format_parameters <- function(
   demography,
   rainfall,
   warmup,
-  result
+  pre
   ) {
   row <- params
-  row$init_EIR <- estimate_baseline(result, warmup)
+  row$init_EIR <- estimate_baseline(pre, warmup)
   as.numeric(c(
     row,
     species_proportions,
@@ -77,19 +72,8 @@ format_parameters <- function(
   ))
 }
 
-estimate_baseline <- function(result, warmup) {
-  year <- 365
-  period <- (
-    result$timestep >= (warmup - 1) * year
-  ) & (result$timestep < warmup * year)
-  period_df <- result[period,]
-  mean(
-    aggregate(
-      get_EIR(period_df),
-      by=list(rep = period_df$repetition),
-      FUN=mean
-    )$x
-  )
+estimate_baseline <- function(pre, warmup) {
+  mean(get_EIR(tail(pre, 365)))
 }
 
 format_timed <- function(interventions, nets, spraying, treatment) {
@@ -110,80 +94,34 @@ format_timed <- function(interventions, nets, spraying, treatment) {
   )
 }
 
-format_outputs <- function(result, warmup, outputs, aggregation) {
+format_outputs <- function(post, outputs) {
   year <- 365
-  range <- result$timestep > warmup * year
-  format_outputs_in_range(result, warmup, outputs, aggregation, range)
-}
-
-equilibrium <- function(result, warmup, outputs, aggregation) {
-  year <- 365
-  range <- (result$timestep > (warmup - 1) * year) & (result$timestep <= warmup * year)
-  format_outputs_in_range(result, warmup, outputs, aggregation, range)
-}
-
-format_outputs_in_range <- function(result, warmup, outputs, aggregation, range) {
-  year <- 365
-  result <- result[range, ]
-  row_year <- floor((result$timestep - 1) / year)
-  if (aggregation == 'yearly') {
-    summarise <- function(x) summarise_yearly(x, row_year, result$repetition)
-  } else {
-    summarise <- function(x) summarise_daily(x, row_year, result$timestep)
-  }
+  row_year <- floor((post$timestep - 1) / year)
   data <- list()
   if ('prev' %in% outputs) {
-    prev <- result$n_detect_730_3650 / result$n_730_3650
-    data[[length(data) + 1]] <- summarise(prev)
+    prev <- post$n_detect_730_3650 / post$n_730_3650
+    data[[length(data) + 1]] <- summarise_daily(prev, row_year, post$timestep)
   }
   if ('prev_6_59' %in% outputs) {
-    prev <- result$n_detect_180_1799 / result$n_180_1799
-    data[[length(data) + 1]] <- summarise(prev)
+    prev <- post$n_detect_180_1799 / post$n_180_1799
+    data[[length(data) + 1]] <- summarise_daily(prev, row_year, post$timestep)
   }
   if ('inc' %in% outputs) {
-    inc <- result$n_inc_clinical_0_36500 / result$n_0_36500
+    inc <- post$n_inc_clinical_0_36500 / post$n_0_36500
     inc[is.na(inc)] <- 0
-    data[[length(data) + 1]] <- summarise(inc)
+    data[[length(data) + 1]] <- summarise_daily(inc, row_year, post$timestep)
   }
   if ('eir' %in% outputs) {
-    eir <- get_EIR(result)
-    data[[length(data) + 1]] <- summarise(eir)
+    eir <- get_EIR(post)
+    data[[length(data) + 1]] <- summarise_daily(eir, row_year, post$timestep)
   }
   do.call(cbind, data)
 }
 
-#' @importFrom stats aggregate sd
-summarise_yearly <- function(metric, year, repetition) {
-  avg_year <- aggregate(
-    metric,
-    by = list(year = year, r = repetition),
-    FUN = mean
-  )
-  avg_rep <- aggregate(
-    avg_year$x,
-    by = list(year = avg_year$year),
-    FUN = mean
-  )
-  sd_rep <- aggregate(
-    avg_year$x,
-    by = list(year = avg_year$year),
-    FUN = sd
-  )
-  avg_rep <- avg_rep[order(avg_rep$year), 'x']
-  avg_sd <- avg_sd[order(avg_sd$year), 'x']
-  matrix(c(avg_rep, sd_rep), ncol = 2, nrow = length(avg_rep))
-}
-
-#' @importFrom stats aggregate sd
 summarise_daily <- function(metric, year, timestep) {
-  avg_rep <- aggregate(
-    metric,
-    by = list(year = year, r = timestep),
-    FUN = mean
-  )
   avg_prof <- aggregate(
-    avg_rep$x,
-    by = list(year = avg_rep$year),
+    metric,
+    by = list(year = year),
     FUN = as.numeric
   )
   avg_prof[order(avg_prof$year), 'x']
@@ -201,21 +139,4 @@ get_rainfall <- function(seas_row) {
     ),
     numeric(1)
   )
-}
-
-warmup_eirs <- function(results, warmup) {
-  year <- 365
-  results <- results[results$timestep < warmup * year,]
-  result_year <- floor(results$timestep / year)
-  per_run <- aggregate(
-    get_EIR(results),
-    by=list(year = result_year, rep = results$repetition),
-    FUN=mean
-  )
-  per_year <- aggregate(
-    per_run$x,
-    by=list(year = per_run$year),
-    FUN=mean
-  )
-  as.numeric(per_year[order(per_year$year),'x'])
 }

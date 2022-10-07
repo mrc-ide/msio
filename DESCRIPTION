@@ -20,7 +20,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Remotes:
-  mrc-ide/malariasimulation@dev
+  mrc-ide/malariasimulation@feat/stable_run
 Imports:
   malariasimulation (>= 1.1.0)
 Suggests: 

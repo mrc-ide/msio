@@ -73,3 +73,34 @@ sample_intervention <- function(df, n) {
   df <- df[sample(nrow(df), n, replace = TRUE),]
   df
 }
+
+parse_demography <- function(dem) {
+  age_upper <- unique(as.numeric(regmatches(
+    names(dem),
+    regexpr('(?<=dem_)\\d[\\.\\d]+', names(dem), perl=T)
+  )))
+  year <- unique(as.numeric(regmatches(
+    names(dem),
+    regexpr('(?<=_)\\d{4}$', names(dem), perl=T)
+  )))
+
+  demography_tt <- (year - min(year)) * 365
+
+  deathrates <- lapply(
+    seq(nrow(dem)),
+    function (i) {
+      t(vapply(
+        year,
+        function(y) {
+          as.numeric(dem[i, paste0('dem_',age_upper,'_',y)])
+        },
+        numeric(length(age_upper))
+      )) / 365
+    }
+  )
+  list(
+    demography_tt = demography_tt,
+    deathrates = deathrates,
+    age_upper = age_upper * 365
+  )
+}

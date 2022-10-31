@@ -2,7 +2,7 @@ format_results <- function(
   params,
   seasonality, 
   species_proportions, 
-  deathrates, 
+  average_age, 
   interventions,
   nets,
   spraying,
@@ -24,17 +24,16 @@ format_results <- function(
   list(
     parameters = format_parameters(
       params,
+      average_age,
       species_proportions,
       rainfall,
-      warmup,
       result$pre
     ),
     timed_parameters = format_timed(
       interventions,
       nets,
       spraying,
-      treatment,
-      deathrates
+      treatment
     ),
     outputs = format_outputs(result$post, outputs)
   )
@@ -61,25 +60,26 @@ get_EIR <- function(result) {
 
 format_parameters <- function(
   params,
+  average_age,
   species_proportions,
   rainfall,
-  warmup,
   pre
   ) {
   row <- params
-  row$init_EIR <- estimate_baseline(pre, warmup)
+  row$init_EIR <- estimate_baseline(pre)
   as.numeric(c(
     row,
+    average_age,
     species_proportions,
     rainfall
   ))
 }
 
-estimate_baseline <- function(pre, warmup) {
+estimate_baseline <- function(pre) {
   mean(get_EIR(tail(pre, 365)))
 }
 
-format_timed <- function(interventions, nets, spraying, treatment, deathrates) {
+format_timed <- function(interventions, nets, spraying, treatment) {
   data <- NULL
   if ('nets' %in% interventions) {
     data <- cbind(data, as.numeric(nets))
@@ -90,7 +90,7 @@ format_timed <- function(interventions, nets, spraying, treatment, deathrates) {
   if ('treatment' %in% interventions) {
     data <- cbind(data, as.numeric(treatment))
   }
-  cbind(data, deathrates[seq(nrow(data)),])
+  data
 }
 
 format_outputs <- function(post, outputs) {

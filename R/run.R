@@ -14,7 +14,6 @@ run_synthetic_simulations <- function(
   n_years = 5,
   paramset = basic_params,
   seed = 42,
-  sites = NULL,
   interventions = 'nets',
   batch_size = 1,
   n_batches = 1,
@@ -27,66 +26,43 @@ run_synthetic_simulations <- function(
   ) {
   n <- n_batches * batch_size
   set.seed(seed)
-  if (is.null(sites)) {
-    r <- lhs::randomLHS(n, length(paramset) + 11)
-    seasonality <- synthetic_seasonality(r[,seq(7), drop=FALSE])
-    species_proportions <- synthetic_species(r[,c(8, 9, 10), drop=FALSE])
-    demography <- synthetic_demography(r[,11,drop=FALSE])
-    params <- sample_params(n, paramset, r[seq_along(paramset) + 11,drop=FALSE])
-  
-    if (synthetic_intervention_method == 'lhs') {
-      r <- lhs::randomLHS(n * n_years, length(interventions))
-      i <- 1
-      if ('nets' %in% interventions) {
-        nets <- synthetic_nets_lhs(n, n_years, r[, i])
-        i <- i + 1
-      }
-      if ('spraying' %in% interventions) {
-        spraying <- synthetic_spraying_lhs(n, n_years, r[, i])
-        i <- i + 1
-      }
-      if ('treatment' %in% interventions) {
-        treatment <- synthetic_tx_lhs(n, n_years, r[, i])
-        i <- i + 1
-      }
-    } else if (synthetic_intervention_method == 'bgw') {
-      nets <- synthetic_nets(n, n_years)
-      spraying <- synthetic_spraying(n, n_years)
-      treatment <- synthetic_tx(n, n_years)
-    } else if (synthetic_intervention_method == 'historic') {
-      datadir <- system.file('default', package='msio')
-      nets <- sample_intervention(read.csv(file.path(datadir, 'nets.csv')), n)
-      spraying <- sample_intervention(
-        read.csv(file.path(datadir, 'spraying.csv')),
-        n
-      )
-      treatment <- sample_intervention(
-        read.csv(file.path(datadir, 'treatment.csv')),
-        n
-      )
-    } 
-  } else {
-    r <- lhs::randomLHS(n, length(paramset))
-    params <- sample_params(n, paramset, r)
-    site_df <- read.csv(file.path(sites))
-    site_df <- sample_df(site_df, n)
-    seasonality <- site_df[,c(
-      'g0',
-      'g1',
-      'g2',
-      'g3',
-      'h1',
-      'h2',
-      'h3'
-    )]
-    species_proportions <- site_df[,c(
-      'arabiensis',
-      'funestus',
-      'gambiae'
-    )]
-    demography <- parse_demography(site_df[,grepl('dem_', names(site_df))])
-    nets <- site_df[,grepl('itn_use_', names(site_df))]
-  }
+  r <- lhs::randomLHS(n, length(paramset) + 11)
+  seasonality <- synthetic_seasonality(r[,seq(7), drop=FALSE])
+  species_proportions <- synthetic_species(r[,c(8, 9, 10), drop=FALSE])
+  demography <- synthetic_demography(r[,11,drop=FALSE])
+  params <- sample_params(n, paramset, r[seq_along(paramset) + 11,drop=FALSE])
+
+  if (synthetic_intervention_method == 'lhs') {
+    r <- lhs::randomLHS(n * n_years, length(interventions))
+    i <- 1
+    if ('nets' %in% interventions) {
+      nets <- synthetic_nets_lhs(n, n_years, r[, i])
+      i <- i + 1
+    }
+    if ('spraying' %in% interventions) {
+      spraying <- synthetic_spraying_lhs(n, n_years, r[, i])
+      i <- i + 1
+    }
+    if ('treatment' %in% interventions) {
+      treatment <- synthetic_tx_lhs(n, n_years, r[, i])
+      i <- i + 1
+    }
+  } else if (synthetic_intervention_method == 'bgw') {
+    nets <- synthetic_nets(n, n_years)
+    spraying <- synthetic_spraying(n, n_years)
+    treatment <- synthetic_tx(n, n_years)
+  } else if (synthetic_intervention_method == 'historic') {
+    datadir <- system.file('default', package='msio')
+    nets <- sample_intervention(read.csv(file.path(datadir, 'nets.csv')), n)
+    spraying <- sample_intervention(
+      read.csv(file.path(datadir, 'spraying.csv')),
+      n
+    )
+    treatment <- sample_intervention(
+      read.csv(file.path(datadir, 'treatment.csv')),
+      n
+    )
+  } 
 
   run_simulations(
     node,
@@ -148,9 +124,7 @@ run_simulations <- function(
             params[i,,drop=FALSE],
             seasonality[i,], 
             species_proportions[i,], 
-            demography$demography_tt, 
-            demography$age_upper, 
-            demography$deathrates[[i]], 
+            demography[[i]], 
             interventions,
             nets[i,],
             spraying[i,],
@@ -168,7 +142,7 @@ run_simulations <- function(
             params[i,,drop=FALSE],
             seasonality[i,], 
             species_proportions[i,], 
-            demography$deathrates[[i]], 
+            demography[[i]], 
             interventions,
             nets[i,],
             spraying[i,],
@@ -198,9 +172,7 @@ run_row <- function(
   params,
   seasonality, 
   species_proportions,
-  demography_tt,
-  ages,
-  deathrates,
+  average_age,
   interventions,
   nets,
   spraying,
@@ -225,17 +197,11 @@ run_row <- function(
         prevalence_rendering_min_ages = c(6 * month, 2 * year),
         prevalence_rendering_max_ages = c(60 * month - 1, 10 * year),
         clinical_incidence_rendering_min_ages = 0,
-        clinical_incidence_rendering_max_ages = 100 * year
+        clinical_incidence_rendering_max_ages = 100 * year,
+        average_age = average_age
       ),
       row
     )
-  )
-
-  parameters <- malariasimulation::set_demography(
-    parameters,
-    agegroups = ages,
-    timesteps = 0,
-    deathrates = deathrates[1,,drop=FALSE]
   )
 
   parameters <- malariasimulation::set_drugs(
@@ -301,13 +267,6 @@ run_row <- function(
         coverages = as.numeric(treatment)
       )
     }
-
-    parameters <- malariasimulation::set_demography(
-      parameters,
-      agegroups = ages,
-      timesteps = c(0, demography_tt + warmup),
-      deathrates = rbind(deathrates[1,,drop=FALSE], deathrates)
-    )
 
     parameters
   }

@@ -1,12 +1,12 @@
 synthetic_seasonality <- function(r) {
   data.frame(list(
-    seasonal_a0 = qunif(r[,1], min=-10, max=10),
-    seasonal_a1 = qunif(r[,2], min=-10, max=10),
-    seasonal_a2 = qunif(r[,3], min=-10, max=10),
-    seasonal_a3 = qunif(r[,4], min=-10, max=10),
-    seasonal_b1 = qunif(r[,5], min=-10, max=10),
-    seasonal_b2 = qunif(r[,6], min=-10, max=10),
-    seasonal_b3 = qunif(r[,7], min=-10, max=10)
+    g0 = qunif(r[,1], min=-10, max=10),
+    g1 = qunif(r[,2], min=-10, max=10),
+    g2 = qunif(r[,3], min=-10, max=10),
+    g3 = qunif(r[,4], min=-10, max=10),
+    h1 = qunif(r[,5], min=-10, max=10),
+    h2 = qunif(r[,6], min=-10, max=10),
+    h3 = qunif(r[,7], min=-10, max=10)
   ))
 }
 

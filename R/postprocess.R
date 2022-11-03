@@ -131,9 +131,9 @@ get_rainfall <- function(seas_row) {
     1:365,
     function(t) malariasimulation:::rainfall(
       t,
-      g0 = seas_row$seasonal_a0,
-      g = c(seas_row$seasonal_a1, seas_row$seasonal_a2, seas_row$seasonal_a3),
-      h = c(seas_row$seasonal_b1, seas_row$seasonal_b2, seas_row$seasonal_b3),
+      g0 = seas_row$g0,
+      g = c(seas_row$g1, seas_row$g2, seas_row$g3),
+      h = c(seas_row$h1, seas_row$h2, seas_row$h3),
       floor = 0.001
     ),
     numeric(1)

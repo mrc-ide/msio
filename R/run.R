@@ -188,7 +188,7 @@ run_simulations <- function(
         }
       )
 
-      jsonlite::write_json(output, outpath, auto_unbox=TRUE, pretty=TRUE)
+      jsonlite::write_json(output, outpath, auto_unbox=TRUE, pretty=TRUE, digits=NA)
       print(paste0('node ', node, ' batch ', batch_i, ' completed'))
       print(Sys.time())
       print(Sys.time() - start_time)
